@@ -4,7 +4,8 @@
 use std::io::{self, Write};
 
 fn main() {
-    println!("=== Vigenère Cipher ===");
+    println!("=== Vigenère Cipher by u2135 ===");
+    println!("++++++++++++++++++++++++++++++++");
     print!("Enter plaintext (A–Z letters only): ");
     io::stdout().flush().unwrap();
 
