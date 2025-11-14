@@ -1,5 +1,5 @@
 [workspace]
-members = ["examples/w01_caesarkey_demo","examples/w01_signature_demo"]
+members = ["examples/w01_caesarkey_demo","examples/w01_signature_demo", "examples/w02_breakVigenereQuad_demo", "examples/w02_breakVigenere_demo", "examples/w02_vigenere_demo", "examples/w03_brokenPRG_demo", "examples/w03_workingPRG_demo", "examples/w05_crcMac_demo"]
 resolver = "2"
 
 [workspace.package]
