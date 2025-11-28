@@ -1,5 +1,9 @@
 [workspace]
-members = ["examples/w01_caesarkey_demo","examples/w01_signature_demo"]
+members = [
+    "examples/w01_caesarkey_demo",
+    "examples/w01_signature_demo",
+    "examples/w02_breakVigenereQuad_demo",
+]
 resolver = "2"
 
 [workspace.package]
