@@ -3,7 +3,7 @@ Please refer to the assignment document on Moodle for the full rules and difficu
 
 How to submit
 
-Create a folder inside this directory using the following format:
+1. Create a folder inside this directory using the following format:
 
 name_surname
 
@@ -11,7 +11,7 @@ Example:
 
 pawel_kowalski
 
-Inside your folder, include:
+2. Inside your folder, include:
 
 Your source code (any language)
 A README.md explaining how to run your solutions
