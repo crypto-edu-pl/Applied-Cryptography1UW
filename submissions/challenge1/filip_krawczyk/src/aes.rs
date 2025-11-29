@@ -8,7 +8,7 @@ pub struct Aes128Key([u8; 16]);
 
 impl Aes128Key {
     pub fn new_random() -> Self {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let mut key = [0_u8; 16];
         rng.fill_bytes(&mut key);
         Aes128Key(key)

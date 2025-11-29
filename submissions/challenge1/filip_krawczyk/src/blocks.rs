@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 /// It's length is guaranteed to be a multiple of BLOCK_SIZE_BYTES.
 #[derive(Clone)]
@@ -17,6 +17,12 @@ impl<const BLOCK_SIZE_BYTES: u8> Deref for Blocks<BLOCK_SIZE_BYTES> {
     type Target = Vec<u8>;
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl<const BLOCK_SIZE_BYTES: u8> DerefMut for Blocks<BLOCK_SIZE_BYTES> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
