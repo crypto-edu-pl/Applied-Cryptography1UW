@@ -3,8 +3,17 @@
 use aes::Aes128;
 use aes::cipher::{BlockDecrypt, BlockEncrypt, KeyInit};
 use generic_array::GenericArray;
+use rand::RngCore;
+pub struct Aes128Key([u8; 16]);
 
-pub struct Aes128Key(pub [u8; 16]);
+impl Aes128Key {
+    pub fn new_random() -> Self {
+        let mut rng = rand::thread_rng();
+        let mut key = [0_u8; 16];
+        rng.fill_bytes(&mut key);
+        Aes128Key(key)
+    }
+}
 
 pub fn encrypt_block(plaintext: &[u8; 16], key: &Aes128Key) -> Box<[u8; 16]> {
     let key = GenericArray::from(key.0);

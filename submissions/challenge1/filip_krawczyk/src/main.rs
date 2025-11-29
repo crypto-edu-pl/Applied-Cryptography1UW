@@ -1,19 +1,27 @@
 use crate::{
-    aes::{Aes128Key, decrypt_block, encrypt_block},
-    blocks::Blocks,
-    pkcs7::unpad,
+    aes::Aes128Key,
+    cbc::{decrypt, encrypt},
 };
 
 pub mod aes;
 pub mod blocks;
+pub mod cbc;
 pub mod pkcs7;
 
 fn main() {
-    let plaintext = "Hello, world!";
+    let plaintext = "Hello, world! This block is much looooonger";
     let plaintext_padded = pkcs7::pad::<16>(plaintext.as_bytes());
-    let key = Aes128Key([0; 16]);
-    let ciphertext = encrypt_block(&plaintext_padded.to_vec().try_into().unwrap(), &key);
-    let decrypted = decrypt_block(&ciphertext, &key);
-    let decrypted_data = unpad::<16>(&Blocks::new(decrypted.to_vec()).unwrap()).unwrap();
-    println!("{:?}", String::from_utf8(decrypted_data).unwrap());
+    let key = Aes128Key::new_random();
+    let ciphertext = encrypt(&plaintext_padded, &[0_u8; 16], &key);
+
+    let decrypted1 = decrypt(&ciphertext.0, &[0_u8; 16], &key);
+    let decrypted2 = decrypt(
+        &ciphertext.0,
+        &[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        &key,
+    );
+
+    println!("Ciphertext: {:?}", ciphertext.0);
+    println!("Decrypted1: {decrypted1:?}");
+    println!("Decrypted2: {decrypted2:?}");
 }
