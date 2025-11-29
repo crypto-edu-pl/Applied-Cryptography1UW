@@ -6,7 +6,7 @@ use crate::{
 };
 
 pub struct Server {
-    pub key: Aes128Key,
+    key: Aes128Key,
 }
 
 impl Default for Server {

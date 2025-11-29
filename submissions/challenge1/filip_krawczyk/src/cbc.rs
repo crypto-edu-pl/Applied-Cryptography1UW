@@ -1,9 +1,12 @@
+use std::fmt::Debug;
+
 use crate::{
     aes::{Aes128Key, decrypt_block, encrypt_block},
     blocks::AesBlocks,
 };
 use rand::RngCore;
 
+#[derive(Clone)]
 pub struct Iv([u8; 16]);
 
 impl Iv {
@@ -13,11 +16,50 @@ impl Iv {
         rng.fill_bytes(&mut iv);
         Iv(iv)
     }
+
+    pub fn new_unchecked(iv: [u8; 16]) -> Self {
+        Iv(iv)
+    }
+
+    pub fn get(&self) -> &[u8; 16] {
+        &self.0
+    }
 }
 
+impl Debug for Iv {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for byte in self.0.iter() {
+            write!(f, "{byte:02x}")?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
 pub struct CbcEncryptedBlocks {
-    pub iv: [u8; 16],
+    pub iv: Iv,
     pub ciphertext: AesBlocks,
+}
+
+impl CbcEncryptedBlocks {
+    pub fn to_full_message(&self) -> AesBlocks {
+        let mut full_message = self.iv.0.to_vec();
+        full_message.extend(self.ciphertext.iter());
+        AesBlocks::new(full_message).unwrap()
+    }
+
+    pub fn from_full_message(full_message: &AesBlocks) -> Self {
+        let mut iter = full_message.iter().copied();
+        let iv = Iv::new_unchecked(
+            iter.by_ref()
+                .take(16)
+                .collect::<Vec<u8>>()
+                .try_into()
+                .unwrap(),
+        );
+        let ciphertext = AesBlocks::new(iter.collect()).unwrap();
+        CbcEncryptedBlocks { iv, ciphertext }
+    }
 }
 
 pub fn encrypt(plaintext_blocks: &AesBlocks, iv: &Iv, key: &Aes128Key) -> CbcEncryptedBlocks {
@@ -30,13 +72,13 @@ pub fn encrypt(plaintext_blocks: &AesBlocks, iv: &Iv, key: &Aes128Key) -> CbcEnc
         previous_ciphertext = *encrypted_block;
     }
     CbcEncryptedBlocks {
-        iv: iv.0,
+        iv: iv.clone(),
         ciphertext: AesBlocks::new(ciphertext_blocks).unwrap(),
     }
 }
 
 pub fn decrypt(ciphertext_blocks: &CbcEncryptedBlocks, key: &Aes128Key) -> AesBlocks {
-    let mut previous_ciphertext = ciphertext_blocks.iv;
+    let mut previous_ciphertext = ciphertext_blocks.iv.0;
     let mut plaintext_blocks = Vec::new();
     for block in ciphertext_blocks.ciphertext.iter_blocks() {
         let decrypted_block = decrypt_block(block, key);

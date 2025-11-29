@@ -11,6 +11,33 @@ impl<const BLOCK_SIZE_BYTES: u8> Blocks<BLOCK_SIZE_BYTES> {
         }
         Ok(Blocks(data))
     }
+
+    pub fn block_count(&self) -> usize {
+        self.0.len() / BLOCK_SIZE_BYTES as usize
+    }
+
+    pub fn nth_block_mut(&mut self, n: usize) -> Option<&mut [u8]> {
+        let start_index = n * BLOCK_SIZE_BYTES as usize;
+        let end_index = start_index + BLOCK_SIZE_BYTES as usize;
+        self.0.get_mut(start_index..end_index)
+    }
+
+    pub fn get_byte(&mut self, block_index: usize, bytes_index: usize) -> Option<&mut u8> {
+        self.0
+            .get_mut(block_index * BLOCK_SIZE_BYTES as usize + bytes_index)
+    }
+
+    pub fn pop_block(&mut self) -> Option<Box<[u8]>> {
+        if self.0.len() < BLOCK_SIZE_BYTES as usize {
+            return None;
+        }
+        Some(
+            self.0
+                .drain(self.0.len() - BLOCK_SIZE_BYTES as usize..)
+                .collect::<Vec<u8>>()
+                .into_boxed_slice(),
+        )
+    }
 }
 
 impl<const BLOCK_SIZE_BYTES: u8> Deref for Blocks<BLOCK_SIZE_BYTES> {

@@ -1,6 +1,6 @@
 use block_ciphers::{
     bit_flipping::{cookie::encode_userdata, server::Server},
-    cbc::CbcEncryptedBlocks,
+    cbc::{CbcEncryptedBlocks, Iv},
 };
 
 fn xor_arrays(a: &[u8], b: &[u8]) -> Vec<u8> {
@@ -34,9 +34,11 @@ pub fn main() {
     let desired_cookie_xor = xor_arrays(&last_block_data, &desired_last_block_data);
 
     let crafted_cookie = CbcEncryptedBlocks {
-        iv: xor_arrays(&encrypted_cookie.iv, &desired_cookie_xor)
-            .try_into()
-            .unwrap(),
+        iv: Iv::new_unchecked(
+            xor_arrays(encrypted_cookie.iv.get(), &desired_cookie_xor)
+                .try_into()
+                .unwrap(),
+        ),
         ciphertext: encrypted_cookie.ciphertext.clone(),
     };
 
