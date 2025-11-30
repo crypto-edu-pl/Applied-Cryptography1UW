@@ -1,6 +1,7 @@
 use crate::{
     aes::Aes128Key,
-    cbc::{CbcEncryptedBlocks, Iv, decrypt, encrypt},
+    cbc::{CbcEncryptedBlocks, decrypt, encrypt},
+    iv::Iv,
     pkcs7::{pad, unpad},
 };
 
@@ -17,7 +18,8 @@ impl PaddingOracle {
 
     pub fn get_encrypted_message(&self) -> CbcEncryptedBlocks {
         // This message is private and never exposed unencrypted.
-        let plaintext = "Hello, world! This is quite a long message, isn't it?";
+        let plaintext =
+            "Hello, world! Some longer message to show that we can decrypt multiple blocks.";
         let padded = pad::<16>(plaintext.as_bytes());
         if self.verbose {
             println!("[PaddingOracle] Padded plaintext: {padded:?}");
@@ -32,7 +34,7 @@ impl PaddingOracle {
 
     pub fn is_padding_valid(&self, ciphertext: &CbcEncryptedBlocks) -> bool {
         if self.verbose {
-            // println!("[PaddingOracle] Checking padding validity for ciphertext: {ciphertext:?}");
+            println!("[PaddingOracle] Checking padding validity for ciphertext: {ciphertext:?}");
         }
         let plaintext = decrypt(ciphertext, &self.key);
         if self.verbose {

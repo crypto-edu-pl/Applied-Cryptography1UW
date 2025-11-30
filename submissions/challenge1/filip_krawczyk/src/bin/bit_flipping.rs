@@ -1,6 +1,7 @@
 use block_ciphers::{
     bit_flipping::{cookie::encode_userdata, server::Server},
-    cbc::{CbcEncryptedBlocks, Iv},
+    cbc::CbcEncryptedBlocks,
+    iv::Iv,
 };
 
 fn xor_arrays(a: &[u8], b: &[u8]) -> Vec<u8> {
@@ -23,22 +24,22 @@ pub fn main() {
     // We assume that encoding algorithm is known, so that we know exactly one (plaintext, ciphertext) pair.
     let my_encoded_data = encode_userdata("");
 
-    // We compute the data in the last block before encrypting.
-    let last_block_data = my_encoded_data.as_bytes()[0..16].to_owned();
+    // Compute the data in the first block in the encoded plaintext.
+    let first_block_data = my_encoded_data.as_bytes()[0..16].to_owned();
 
-    let desired_last_block_data = "admin=true;x=aaa".as_bytes().to_owned();
+    // We want to modify that first block to this value:
+    let desired_first_block_data = "admin=true;x=aaa".as_bytes().to_owned();
 
-    println!("Last block data: {last_block_data:?}");
-    println!("Desired last block data: {desired_last_block_data:?}");
-
-    let desired_cookie_xor = xor_arrays(&last_block_data, &desired_last_block_data);
+    // Compute what value IV should be set to in order to change the first block to the desired value.
+    let desired_cookie_xor = xor_arrays(&first_block_data, &desired_first_block_data);
+    let new_iv = Iv::new_unchecked(
+        xor_arrays(encrypted_cookie.iv.get(), &desired_cookie_xor)
+            .try_into()
+            .unwrap(),
+    );
 
     let crafted_cookie = CbcEncryptedBlocks {
-        iv: Iv::new_unchecked(
-            xor_arrays(encrypted_cookie.iv.get(), &desired_cookie_xor)
-                .try_into()
-                .unwrap(),
-        ),
+        iv: new_iv,
         ciphertext: encrypted_cookie.ciphertext.clone(),
     };
 

@@ -1,7 +1,8 @@
 use crate::{
     aes::Aes128Key,
     bit_flipping::cookie::{ParseCookieError, encode_userdata, parse_cookie},
-    cbc::{CbcEncryptedBlocks, Iv, decrypt, encrypt},
+    cbc::{CbcEncryptedBlocks, decrypt, encrypt},
+    iv::Iv,
     pkcs7::{Pkcs7PaddingError, pad, unpad},
 };
 
