@@ -1,0 +1,11 @@
+[package]
+name = "cryptopals"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0"                                    # Great for simple error handling
+base64 = "0.21"
+clap = { version = "4.4", features = ["derive"] }
+hex = "0.4"
+
