@@ -8,29 +8,35 @@ from Crypto.Util.Padding import pad
 HOST = "127.0.0.1"
 PORT = 5000
 
-SECRET_COOKIE = b"SESSIONID=67676767"
-KEY = os.urandom(16)
-IV = os.urandom(16)
+BLOCK_SIZE = 16
+SECRET_COOKIE = b"SECRET"
+KEY = os.urandom(BLOCK_SIZE)
+IV = os.urandom(BLOCK_SIZE)
 
-BLOCK = 16
-
+KNOWN1 = b"GET /pub/"
+KNOWN2 = b"HTTP/2\r\nCookie: Proxy-Key="
+KNOWN3 = b"\r\nIdempotency-Key: "
 
 def tls10_encrypt_and_update_iv(plaintext: bytes) -> bytes:
     global IV
 
-    msg = plaintext
+    print(f"Encrypting: {plaintext}")
 
-    padded = pad(msg, BLOCK)
+    padded = pad(plaintext, BLOCK_SIZE)
 
     cipher = AES.new(KEY, AES.MODE_CBC, IV)
     ciphertext = cipher.encrypt(padded)
 
-    IV = ciphertext[-BLOCK:]
+    IV = ciphertext[-BLOCK_SIZE:]
 
     return ciphertext
 
 
 def main():
+    global PORT
+
+    PORT = int(input("Enter port: "))
+
     print(f"Listening on {HOST}:{PORT}")
     print("AES KEY =", KEY.hex())
     print("Initial IV =", IV.hex())
@@ -47,7 +53,9 @@ def main():
                     continue
 
                 print("Got:", data)
-                ciphertext = tls10_encrypt_and_update_iv(data + SECRET_COOKIE)
+                if data[0:3] == b"AAA":
+                    data = KNOWN1 + data + KNOWN2 + SECRET_COOKIE + KNOWN3
+                ciphertext = tls10_encrypt_and_update_iv(data)
                 print("Sending:", ciphertext)
                 conn.sendall(ciphertext)
 
