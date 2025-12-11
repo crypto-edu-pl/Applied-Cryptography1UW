@@ -41,15 +41,21 @@ def main():
         correct_ciphertext = send_and_get_response(infix)
         last_iv = correct_ciphertext[-BLOCK_SIZE:]
         iv_used = correct_ciphertext[(secret_block_nr - 1) * BLOCK_SIZE:secret_block_nr * BLOCK_SIZE]
+        plaintext_prefix_len = len(guessed_secret) + 1 - BLOCK_SIZE
+        plaintext_prefix = (KNOWN1 + KNOWN2)[plaintext_prefix_len:] if plaintext_prefix_len < 0 else b""
         for letter in range(256):
             letter = bytes([letter])
-            plaintext = (KNOWN1 + KNOWN2)[-BLOCK_SIZE + len(guessed_secret) + 1:] + guessed_secret + letter
+            plaintext = plaintext_prefix + guessed_secret + letter
+            plaintext = plaintext[-BLOCK_SIZE:]
             print(f"Checking {to_blocks(plaintext)}")
             ciphertext = send_and_get_response(xor_first_block(plaintext, [last_iv, iv_used]))
             last_iv = ciphertext[-BLOCK_SIZE:]
             if (ciphertext[:BLOCK_SIZE] == correct_ciphertext[secret_block_nr * BLOCK_SIZE:(secret_block_nr + 1) * BLOCK_SIZE]):
                 guessed_secret = guessed_secret + letter
                 infix = infix[:-1]
+                if len(infix) < 3:
+                    infix += b"A" * BLOCK_SIZE
+                    secret_block_nr += 1
                 print(letter)
                 break
     print(guessed_secret[:-2])
