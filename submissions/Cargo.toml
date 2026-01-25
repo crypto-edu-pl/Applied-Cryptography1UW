@@ -1,0 +1,17 @@
+[package]
+name = "cryptopals"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+aes = "0.8.4"
+anyhow = "1.0"                                    # Great for simple error handling
+base64 = "0.21"
+clap = { version = "4.4", features = ["derive"] }
+hex = "0.4"
+num-bigint = { version = "0.4.6", features = ["rand"] }
+num-traits = "0.2.19"
+rand = "0.8"
+rand_chacha = "0.3"
+typenum = "1.19.0"
+
